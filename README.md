@@ -5,30 +5,33 @@
 [![Coverage Status](https://coveralls.io/repos/github/Soluto/casbin-minio-adapter/badge.svg?branch=master)](https://coveralls.io/github/Soluto/casbin-minio-adapter?branch=master)
 [![Godoc](https://godoc.org/github.com/Soluto/casbin-minio-adapter?status.svg)](https://godoc.org/github.com/Soluto/casbin-minio-adapter)
 
-[Casbin](https://github.com/casbin/casbin) adapter implementation using Minio/AWS S3
+[Casbin](https://github.com/casbin/casbin) adapter implementation using [Minio](https://github.com/minio/minio)/AWS S3 policy storage
 
 ## Installation
 
     go get github.com/Soluto/casbin-minio-adapter
 
 ## Usage
+
 ```go
 import (
-	minioadapter "github.com/Soluto/casbin-minio-adapter"
-	"github.com/casbin/casbin"
+    minioadapter "github.com/Soluto/casbin-minio-adapter"
+    "github.com/casbin/casbin"
 )
 
 func main() {
-	
 
-	enforcerer := casbin.NewSyncedEnforcer("model.conf", "policy.csv")
+    adapter, _ := minioadapter.NewAdapter("http://minio-endpoint", "accessKey", "secretKey", false, "casbin-bucker", "policy.csv")
+
+    enforcerer := casbin.NewSyncedEnforcer("rbac_model.conf", adapter)
+
 }
 ```
 
 ## Related pojects
-- [Casbin](https://github.com/casbin/casbin)
-- [Minio](https://github.com/minio/minio-go)
 
+- [Casbin](https://github.com/casbin/casbin)
+- [Minio](https://github.com/minio/minio)
 
 ## Additional Usage Examples
 
