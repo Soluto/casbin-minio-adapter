@@ -2,6 +2,7 @@ package minioadapter
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -15,14 +16,14 @@ import (
 
 // MinioAdapter the struct that implements
 type MinioAdapter struct {
-	client   *minio.Client
-	bucket   string
-	filename string
+	client     *minio.Client
+	bucket     string
+	objectName string
 }
 
 // LoadPolicy loads all policy rules from the storage.
 func (a *MinioAdapter) LoadPolicy(model model.Model) error {
-	obj, err := a.client.GetObject(a.bucket, a.filename, minio.GetObjectOptions{})
+	obj, err := a.client.GetObject(a.bucket, a.objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return err
 	}
@@ -42,12 +43,12 @@ func (a *MinioAdapter) LoadPolicy(model model.Model) error {
 
 // SavePolicy saves all policy rules to the storage.
 func (a *MinioAdapter) SavePolicy(model model.Model) error {
-	pr, pw := io.Pipe()
+	var tmp bytes.Buffer
 	var streamLength int64
 
 	for ptype, ast := range model["p"] {
 		for _, rule := range ast.Policy {
-			l, err := pw.Write([]byte(fmt.Sprintf("%s,%s/n", ptype, util.ArrayToString(rule))))
+			l, err := tmp.WriteString(fmt.Sprintf("%s,%s/n", ptype, util.ArrayToString(rule)))
 			if err != nil {
 				return err
 			}
@@ -57,7 +58,7 @@ func (a *MinioAdapter) SavePolicy(model model.Model) error {
 
 	for ptype, ast := range model["g"] {
 		for _, rule := range ast.Policy {
-			l, err := pw.Write([]byte(fmt.Sprintf("%s,%s/n", ptype, util.ArrayToString(rule))))
+			l, err := tmp.WriteString(fmt.Sprintf("%s,%s/n", ptype, util.ArrayToString(rule)))
 			if err != nil {
 				return err
 			}
@@ -65,7 +66,7 @@ func (a *MinioAdapter) SavePolicy(model model.Model) error {
 		}
 	}
 
-	a.client.PutObject(a.bucket, a.filename, pr, streamLength, minio.PutObjectOptions{})
+	a.client.PutObject(a.bucket, a.objectName, &tmp, streamLength, minio.PutObjectOptions{})
 
 	return nil
 }
@@ -89,16 +90,29 @@ func (a *MinioAdapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex
 }
 
 // NewAdapter create new MinioAdapter
-func NewAdapter(endpoint string, accessKeyID string, secretAccessKey string, secure bool, bucket string, filename string) (persist.Adapter, error) {
-	client, err := minio.New(endpoint, accessKeyID, secretAccessKey, secure)
+// Parameters:
+// 	- endpoint
+//		URL to object storage service.
+// 	- accessKey
+//		Access key is the user ID that uniquely identifies your account.
+//	- secretKey
+//		Secret key is the password to your account.
+//  - secure
+//		Set this value to 'true' to enable secure (HTTPS) access.
+//  - bucket
+//		Name of the bucket where the policy is stored
+//  - objectName
+//		Name of the object that contains policy
+func NewAdapter(endpoint string, accessKey string, secretKey string, secure bool, bucket string, objectName string) (persist.Adapter, error) {
+	client, err := minio.New(endpoint, accessKey, secretKey, secure)
 	if err != nil {
 		return nil, err
 	}
 
 	ma := &MinioAdapter{
-		client:   client,
-		bucket:   bucket,
-		filename: filename,
+		client:     client,
+		bucket:     bucket,
+		objectName: objectName,
 	}
 
 	ok, err := ma.client.BucketExists(ma.bucket)

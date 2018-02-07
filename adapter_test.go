@@ -14,6 +14,7 @@ import (
 )
 
 var resource *dockertest.Resource
+var client *minio.Client
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -40,7 +41,7 @@ func TestMain(m *testing.M) {
 	if err := pool.Retry(func() error {
 		var err error
 		endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
-		client, err := minio.New(endpoint, "ACCESSKEY", "SECRETKEY", false)
+		client, err = minio.New(endpoint, "ACCESSKEY", "SECRETKEY", false)
 		if err != nil {
 			log.Println("Failed to create minio client:", err)
 			return err
@@ -60,11 +61,6 @@ func TestMain(m *testing.M) {
 			}
 		}
 
-		if _, err = client.FPutObject("casbin-bucket", "policy.csv", "./examples/rbac_policy.csv", minio.PutObjectOptions{ContentType: "application/csv"}); err != nil {
-			log.Println("Failed to upload policy:", err)
-			return err
-		}
-
 		return nil
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
@@ -81,16 +77,20 @@ func TestMain(m *testing.M) {
 }
 
 func TestLoadPolicy(t *testing.T) {
+	if _, err := client.FPutObject("casbin-bucket", "policy.csv", "./examples/rbac_policy.csv", minio.PutObjectOptions{ContentType: "application/csv"}); err != nil {
+		log.Fatal("Test setup: Failed to upload policy:", err)
+	}
+
 	endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
 	adapter, err := NewAdapter(endpoint, "ACCESSKEY", "SECRETKEY", false, "casbin-bucket", "policy.csv")
 	if err != nil {
 		t.Fatal("Failed to create adapter:", err)
 	}
 
-	model := model.Model{}
-	model.LoadModel("examples/rbac_model.conf")
+	m := model.Model{}
+	m.LoadModel("examples/rbac_model.conf")
 
-	err = adapter.LoadPolicy(model)
+	err = adapter.LoadPolicy(m)
 	if err != nil {
 		t.Fatal("Failed to load policy:", err)
 	}
@@ -98,17 +98,22 @@ func TestLoadPolicy(t *testing.T) {
 
 func TestSavePolicy(t *testing.T) {
 	endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
-	adapter, err := NewAdapter(endpoint, "ACCESSKEY", "SECRETKEY", false, "casbin-bucket", "empty_policy.csv")
+	adapter, err := NewAdapter(endpoint, "ACCESSKEY", "SECRETKEY", false, "casbin-bucket", "policy2.csv")
 	if err != nil {
 		t.Fatal("Failed to create adapter:", err)
 	}
 
-	model := model.Model{}
-	model.LoadModel("examples/rbac_model.conf")
+	m := model.Model{}
+	m.LoadModel("examples/rbac_model.conf")
 
-	err = adapter.SavePolicy(model)
+	err = adapter.SavePolicy(m)
 	if err != nil {
 		t.Fatal("Failed to save policy:", err)
+	}
+
+	_, err = client.StatObject("casbin-bucket", "policy2.csv", minio.StatObjectOptions{})
+	if err != nil {
+		t.Fatal("Failed to get storage policy info:", err)
 	}
 }
 
@@ -120,7 +125,7 @@ func TestWithEnforcer(t *testing.T) {
 		t.Fatal("Failed to create adapter:", err)
 	}
 
-	enforcerer := casbin.NewSyncedEnforcer("examples/rbac_model.conf", adapter)
+	enforcer := casbin.NewSyncedEnforcer("examples/rbac_model.conf", adapter)
 
-	enforcerer.EnableEnforce(true)
+	enforcer.EnableEnforce(true)
 }
