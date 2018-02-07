@@ -1,3 +1,5 @@
+language: go
+
 # Sudo is required for docker
 sudo: required
 
