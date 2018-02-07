@@ -148,4 +148,8 @@ func TestWithEnforcer(t *testing.T) {
 	enforcer := casbin.NewSyncedEnforcer(m, adapter)
 
 	enforcer.EnableEnforce(true)
+
+	if err = enforcer.SavePolicy(); err != nil {
+		t.Fatal("Save policy failed:", err)
+	}
 }
