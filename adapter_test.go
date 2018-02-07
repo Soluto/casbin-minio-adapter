@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/casbin/casbin/file-adapter"
+
 	"github.com/casbin/casbin"
 	"github.com/casbin/casbin/model"
 	dc "github.com/fsouza/go-dockerclient"
@@ -94,26 +96,41 @@ func TestLoadPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to load policy:", err)
 	}
+
+	if m.GetValuesForFieldInPolicy("p", "p", 0)[0] != "alice" {
+		t.Fatal("Policy wasn't loaded properly")
+	}
 }
 
 func TestSavePolicy(t *testing.T) {
+	m := model.Model{}
+	m.LoadModel("examples/rbac_model.conf")
+
+	fi, err := os.Stat("examples/rbac_policy.csv")
+	if err != nil {
+		t.Fatal("Testing policy file error:", err)
+	}
+
+	fAdapter := fileadapter.NewAdapter("examples/rbac_policy.csv")
+	fAdapter.LoadPolicy(m)
+
 	endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
 	adapter, err := NewAdapter(endpoint, "ACCESSKEY", "SECRETKEY", false, "casbin-bucket", "policy2.csv")
 	if err != nil {
 		t.Fatal("Failed to create adapter:", err)
 	}
 
-	m := model.Model{}
-	m.LoadModel("examples/rbac_model.conf")
-
 	err = adapter.SavePolicy(m)
 	if err != nil {
 		t.Fatal("Failed to save policy:", err)
 	}
 
-	_, err = client.StatObject("casbin-bucket", "policy2.csv", minio.StatObjectOptions{})
+	objectInfo, err := client.StatObject("casbin-bucket", "policy2.csv", minio.StatObjectOptions{})
 	if err != nil {
 		t.Fatal("Failed to get storage policy info:", err)
+	}
+	if objectInfo.Size != fi.Size()+1 {
+		t.Fatalf("Policy file size %v not equal to stored policy size %v", fi.Size(), objectInfo.Size)
 	}
 }
 
@@ -125,7 +142,10 @@ func TestWithEnforcer(t *testing.T) {
 		t.Fatal("Failed to create adapter:", err)
 	}
 
-	enforcer := casbin.NewSyncedEnforcer("examples/rbac_model.conf", adapter)
+	m := model.Model{}
+	m.LoadModel("examples/rbac_model.conf")
+
+	enforcer := casbin.NewSyncedEnforcer(m, adapter)
 
 	enforcer.EnableEnforce(true)
 }
