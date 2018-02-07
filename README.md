@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Soluto/casbin-minio-adapter)](https://goreportcard.com/report/github.com/Soluto/casbin-minio-adapter)
 [![Build Status](https://travis-ci.org/Soluto/casbin-minio-adapter.svg?branch=master)](https://travis-ci.org/Soluto/casbin-minio-adapter)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/Soluto/casbin-minio-adapter?branch=master&svg=true)](https://ci.appveyor.com/project/Soluto/casbin-minio-adapter)
 [![Coverage Status](https://coveralls.io/repos/github/Soluto/casbin-minio-adapter/badge.svg?branch=master)](https://coveralls.io/github/Soluto/casbin-minio-adapter?branch=master)
 [![Godoc](https://godoc.org/github.com/Soluto/casbin-minio-adapter?status.svg)](https://godoc.org/github.com/Soluto/casbin-minio-adapter)
 
