@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 		endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
 		client, err := minio.New(endpoint, "ACCESSKEY", "SECRETKEY", false)
 		if err != nil {
-			log.Println("Failed to create minio client")
+			log.Println("Failed to create minio client:", err)
 			return err
 		}
 
@@ -55,9 +55,14 @@ func TestMain(m *testing.M) {
 		if !exists {
 			err = client.MakeBucket("casbin-bucket", "location-1")
 			if err != nil {
-				log.Println("Failed to create bucket")
+				log.Println("Failed to create bucket:", err)
 				return err
 			}
+		}
+
+		if _, err = client.FPutObject("casbin-bucket", "policy.csv", "./examples/rbac_policy.csv", minio.PutObjectOptions{ContentType: "application/csv"}); err != nil {
+			log.Println("Failed to upload policy:", err)
+			return err
 		}
 
 		return nil
@@ -75,22 +80,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestSavePolicy(t *testing.T) {
-	endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
-	adapter, err := NewAdapter(endpoint, "ACCESSKEY", "SECRETKEY", false, "casbin-bucket", "policy.csv")
-	if err != nil {
-		t.Fatal("Failed to create adapter:", err)
-	}
-
-	model := model.Model{}
-	model.LoadModel("examples/rbac_model.conf")
-
-	err = adapter.SavePolicy(model)
-	if err != nil {
-		t.Fatal("Failed to save policy:", err)
-	}
-}
-
 func TestLoadPolicy(t *testing.T) {
 	endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
 	adapter, err := NewAdapter(endpoint, "ACCESSKEY", "SECRETKEY", false, "casbin-bucket", "policy.csv")
@@ -104,6 +93,22 @@ func TestLoadPolicy(t *testing.T) {
 	err = adapter.LoadPolicy(model)
 	if err != nil {
 		t.Fatal("Failed to load policy:", err)
+	}
+}
+
+func TestSavePolicy(t *testing.T) {
+	endpoint := fmt.Sprintf("localhost:%v", resource.GetPort("9000/tcp"))
+	adapter, err := NewAdapter(endpoint, "ACCESSKEY", "SECRETKEY", false, "casbin-bucket", "empty_policy.csv")
+	if err != nil {
+		t.Fatal("Failed to create adapter:", err)
+	}
+
+	model := model.Model{}
+	model.LoadModel("examples/rbac_model.conf")
+
+	err = adapter.SavePolicy(model)
+	if err != nil {
+		t.Fatal("Failed to save policy:", err)
 	}
 }
 

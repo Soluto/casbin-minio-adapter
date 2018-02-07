@@ -1,5 +1,3 @@
-language: go
-
 # Sudo is required for docker
 sudo: required
 
@@ -9,6 +7,7 @@ services:
 
 go:
   - tip
-
+before_install:
+  - go get github.com/mattn/goveralls
 script:
-  - go test
+  - $GOPATH/bin/goveralls -service=travis-ci
