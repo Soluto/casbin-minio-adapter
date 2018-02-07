@@ -48,7 +48,7 @@ func (a *MinioAdapter) SavePolicy(model model.Model) error {
 
 	for ptype, ast := range model["p"] {
 		for _, rule := range ast.Policy {
-			l, err := tmp.WriteString(fmt.Sprintf("%s,%s/n", ptype, util.ArrayToString(rule)))
+			l, err := tmp.WriteString(fmt.Sprintf("%s, %s\n", ptype, util.ArrayToString(rule)))
 			if err != nil {
 				return err
 			}
@@ -58,7 +58,7 @@ func (a *MinioAdapter) SavePolicy(model model.Model) error {
 
 	for ptype, ast := range model["g"] {
 		for _, rule := range ast.Policy {
-			l, err := tmp.WriteString(fmt.Sprintf("%s,%s/n", ptype, util.ArrayToString(rule)))
+			l, err := tmp.WriteString(fmt.Sprintf("%s, %s\n", ptype, util.ArrayToString(rule)))
 			if err != nil {
 				return err
 			}

@@ -129,7 +129,7 @@ func TestSavePolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to get storage policy info:", err)
 	}
-	if objectInfo.Size != fi.Size()+1 {
+	if objectInfo.Size != fi.Size() {
 		t.Fatalf("Policy file size %v not equal to stored policy size %v", fi.Size(), objectInfo.Size)
 	}
 }
